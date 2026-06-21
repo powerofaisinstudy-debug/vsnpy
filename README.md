@@ -12,7 +12,7 @@
 
 When building real-time computer vision pipelines in Python (such as feeding live webcam frames into YOLO, ViT, or custom PyTorch models), the major performance bottleneck is rarely the neural network itself. Instead, systems frequently experience **CPU cache thrashing** and **Python GIL (Global Interpreter Lock) congestion** during image ingestion and frame preprocessing.
 
-`vsnpy` is being developed to solve this exact issue. By shifting expensive pixel-level tracking operations to a flat, highly optimized custom C++ backend while maintaining a simple Python interface, `vsnpy` ensures that frame preprocessing loops run **smooth like butter** on standard hardware without requiring expensive hardware upgrades just to read video frames.
+`vsnpy` is being developed to solve this exact issue by bringing **Vision + NumPy** directly into harmony. By shifting expensive pixel-level tracking operations to a flat, highly optimized custom C++ backend while maintaining a familiar, array-driven Python interface, `vsnpy` ensures that frame preprocessing loops run **smooth like butter** on standard hardware.
 
 ---
 
@@ -32,11 +32,45 @@ Iterating through arrays using standard Python loops adds immense variable-acces
 
 ---
 
-## 📊 High-Level Architecture
+## 🛠️ API & Core Functions: Pure Vision + NumPy
 
+`vsnpy` bridges the gap between high-level Python syntax and bare-metal C++ speed. It operates on a native `vsarray` structure that mirrors standard NumPy behavior but keeps layout optimizations running smoothly under the hood.
+
+### 1. Core Engine Arrays & Allocation
+
+#### `vsnpy.vsarray(shape, dtype=vsnpy.uint8)`
+Allocates a zero-copy memory buffer optimized for high-speed sequential video frame manipulation.
+* **Why it matters:** Unlike standard arrays that cause memory-bus latency during continuous webcam ingestion, a `vsarray` locks memory pages directly inside cache lines for instant C++ kernel access.
+
+#### `vsnpy.vs_process_frame(array, operations=[])`
+Executes **Kernel Operator Fusion** directly on an incoming frame.
+* **Syntax Example:**
+  ```python
+  # Fuses Gaussian Blur and Binary Thresholding into a single C++ register pass
+  fused_mask = vsnpy.vs_process_frame(frame, operations=["VS_BLUR", "VS_BINARY_THRESHOLD"])
+Why it matters: Instead of bouncing huge multi-channel color arrays back and forth to main system RAM, the pixel transformations are crunched in one fast pass and instantly crushed down into the lightweight 1-bit hidden binary mask (0s and 1s).
+
+2. High-Speed Frame Tracking
+vsnpy.track_pixels(binary_mask, target_color=None)
+The main heavy-lifting function of the framework. It searches the hidden 1-bit binary mask to isolate target contours and track movement vectors.
+
+Syntax Example:
+
+Python
+# Runs entirely with the Python GIL released
+coordinates = vsnpy.track_pixels(fused_mask)
+Why it matters: It completely bypasses slow Python loops. The entire bounding search runs inside a flat C++ loop, keeping your frame ingestion running fluidly even on low-spec laptop processors.
+
+3. Deep Learning Handshake
+vsnpy.to_pytorch(array)
+Instantly casts a processed vsnpy array configuration directly into a native torch.Tensor layout without copying underlying data pointers.
+
+Why it matters: This provides a seamless pipeline where raw video input is grabbed, optimized via C++, compressed into binary tracking maps, and handed straight off to downstream PyTorch models (like YOLO or ViT) with absolutely zero layout duplication overhead.
+
+📊 High-Level Architecture
 [Raw Webcam Frame Input]
-│
-▼  (Zero-Copy Layout Match)
+       │
+       ▼  (Zero-Copy Layout Match)
 ┌────────────────────────────────────────────────────────┐
 │            vsnpy Custom C++ Engine Core                │
 │                                                        │
@@ -46,21 +80,15 @@ Iterating through arrays using standard Python loops adds immense variable-acces
 │  ► Layout Compression                                  │
 │    [Crushes spatial data down to 1-bit 0/1 binary mask]│
 └────────────────────────────────────────────────────────┘
-│
-▼  (GIL-Released Native Threading)
-track_pixels() ──► [Instant Handshake with PyTorch Tensors]
+       │
+       ▼  (GIL-Released Native Threading)
+  track_pixels() ──► [Instant Handshake with PyTorch Tensors]
+🎯 Architecture Goals
+Smooth Like Butter Delivery: Eliminates frame stuttering and lag on standard computers and laptops by protecting the system from redundant memory allocation traps.
 
+Zero-Copy Performance: The internal vsarray layout is designed to share raw memory pointers natively with scientific computing structures, avoiding internal array duplicating latency before data passes to deep learning layers.
 
----
+Drop-In Integration: Built to serve as a clean Python framework that accelerates frame ingestion immediately before tensor hand-off.
 
-## 🎯 Architecture Goals
-
-* **Smooth Like Butter Delivery:** Eliminates frame stuttering and lag on standard computers and laptops by protecting the system from redundant memory allocation traps.
-* **Zero-Copy Performance:** The internal `vsarray` layout is designed to share raw memory pointers natively with scientific computing structures, avoiding internal array duplicating latency before data passes to deep learning layers.
-* **Drop-In Integration:** Built to serve as a clean Python framework that accelerates frame ingestion immediately before tensor hand-off.
-
----
-
-## 📝 License
-
+📝 License
 This project is licensed under the MIT License - see the LICENSE file for details.
