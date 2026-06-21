@@ -8,7 +8,7 @@
 
 ---
 
-!(STILL IN PROGRESS OF CRETING vsnpy)!
+!(STILL IN PROGRESS OF CREATING vsnpy)!
 
 ## 🚀 1. Executive Overview & Problem Statement
 
