@@ -1,7 +1,5 @@
-# vsnpy (VisioNumPy)
-
 <p align="center">
-  <img src="vsn.png" alt="vsnpy dark-orange robotic hand logo" width="220"/>
+  <img src="vsn.png" alt="vsnpy dark-orange robotic hand logo" width="100%" max-width="600px"/>
 </p>
 
 <p align="center">
