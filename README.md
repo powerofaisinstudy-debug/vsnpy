@@ -8,6 +8,8 @@
 
 ---
 
+!(STILL IN PROGESS OF CRETING vsnpy)!
+
 ## 🚀 1. Executive Overview & Problem Statement
 
 In modern deep learning vision application pipelines—such as streaming a live 1080p, 60fps webcam feed directly into high-accuracy object detectors like YOLOv8 or Vision Transformers (ViTs)—engineers consistently hit a performance ceiling. Crucially, profiling reveals that this bottleneck is rarely the neural network's inference pass on the GPU accelerator. Instead, the runtime is heavily constrained by **CPU cache thrashing**, constant **main memory (RAM) round-trips**, and **Python GIL (Global Interpreter Lock) congestion** during image ingestion, color space transformations, and spatial feature preprocessing.
